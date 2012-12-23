@@ -9,24 +9,43 @@ var MS = function (options) {
 };
 
 MS.prototype.serving = function () {
-  var self = this;
-  this._dataFile = this.options.dataFile || DATA_FILE;
-  this.initData();
+  this.dataFile = this.options.dataFile || DATA_FILE;
+  this.writable = this.options.writable || true;
+  this.syncMode = this.options.syncModel || 'backup'; // backup|sync
+  this.backupInterval = this.options.backupInterval || 60000;
 
-  fs.watch(this._dataFile, function (e, filename) {
-    console.log('event:', e);
-    if (e == 'change') self.loadData();
-    if (e == 'rename') self.initData();
-  });
+  this.initData();
+  this.initSync();
+};
+
+MS.prototype.initSync = function () {
+  var self = this;
+  if (this.syncMode == 'sync') {
+    fs.watch(this.dataFile, function (e, filename) {
+      //console.log('event:', e);
+      if (e == 'change') self.loadData();
+      if (e == 'rename') self.initData();
+    });
+  } else if (this.syncMode == 'backup') {
+    var sync = function () {
+      if (self.needSync && self.writable) fs.writeFileSync(self.dataFile, JSON.stringify(self._data));
+      self.needSync = false;
+      rerun();
+    } 
+    var rerun = function () {
+      setTimeout(sync, self.backupInterval);
+    };
+    sync();
+  }
 };
 
 MS.prototype.initData = function () {
-  if (!fs.existsSync(this._dataFile)) this.clear();
+  if (!fs.existsSync(this.dataFile)) this.clear();
   this.loadData();
 };
 
 MS.prototype.loadData = function (key) {
-  this._data = JSON.parse(fs.readFileSync(this._dataFile));
+  this._data = JSON.parse(fs.readFileSync(this.dataFile));
 };
 
 MS.prototype.get = function (key, cb) {
@@ -52,12 +71,17 @@ MS.prototype.remove = function (key, cb) {
 };
 
 MS.prototype.clear = function (cb) {
-  fs.writeFileSync(this._dataFile, JSON.stringify(DATA));
+  fs.writeFileSync(this.dataFile, JSON.stringify(DATA));
+  this.syncData();
   if (cb) cb(null);
 };
 
 MS.prototype.syncData = function () {
-  fs.writeFileSync(this._dataFile, JSON.stringify(this._data));
+  if (this.syncMode == 'sync') {
+    fs.writeFileSync(this.dataFile, JSON.stringify(this._data));
+  } else {
+    this.needSync = true;
+  }
 };
 
 MS.prototype.parse = function (key) {
