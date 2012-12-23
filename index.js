@@ -30,12 +30,12 @@ MS.prototype.initSync = function () {
     var sync = function () {
       if (self.needSync && self.writable) fs.writeFileSync(self.dataFile, JSON.stringify(self._data));
       self.needSync = false;
-      rerun();
+      run();
     } 
-    var rerun = function () {
+    var run = function () {
       setTimeout(sync, self.backupInterval);
     };
-    sync();
+    run();
   }
 };
 
@@ -78,7 +78,7 @@ MS.prototype.clear = function (cb) {
 
 MS.prototype.syncData = function () {
   if (this.syncMode == 'sync') {
-    fs.writeFileSync(this.dataFile, JSON.stringify(this._data));
+    if (this.writable) fs.writeFileSync(this.dataFile, JSON.stringify(this._data));
   } else {
     this.needSync = true;
   }
