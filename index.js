@@ -10,12 +10,25 @@ var MS = function (options) {
 
 MS.prototype.serving = function () {
   this.dataFile = this.options.dataFile || DATA_FILE;
-  this.writable = this.options.writable || true;
-  this.syncMode = this.options.syncModel || 'backup'; // backup|sync
-  this.backupInterval = this.options.backupInterval || 60000;
-
+  this.setMode();
   this.initData();
   this.initSync();
+};
+
+MS.prototype.setMode = function () {
+  if (this.options.mode == 'master') {
+    this.writable = true;
+    this.syncMode = 'sync';
+    this.backupInterval = null;
+  } else if (this.options.mode == 'slaver') {
+    this.writable = false;
+    this.syncMode = 'sync'; // backup|sync
+    this.backupInterval = null;
+  } else { // default will be standalone
+    this.writable = this.options.writable || true;
+    this.syncMode = this.options.syncModel || 'backup'; // backup|sync
+    this.backupInterval = this.options.backupInterval || 60000;
+  }
 };
 
 MS.prototype.initSync = function () {
